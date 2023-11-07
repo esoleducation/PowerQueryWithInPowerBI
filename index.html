@@ -64,17 +64,19 @@
                 postData = "grant_type=client_credentials",
                 authTxt = Text.ToBinary(psClientID & ":" & psClientSecret),
                 base64T = Binary.ToText(authTxt, BinaryEncoding.Base64),
-                result1 = Json.Document(Web.Contents(
-                  url,
-                  [
-                    RelativePath = "/oauth/access_token",
-                    Headers = [
+                result1 = Json.Document(
+                  Web.Contents(
+                    url,
+                    [
+                      RelativePath = "/oauth/access_token",
+                      Headers = [
                         #"Authorization" = "Basic " & base64T,
                         #"Content-Type" = "application/x-www-form-urlencoded"
-                    ],
-                    Content = Text.ToBinary(postData)
-                  ]
-                )),
+                      ],
+                      Content = Text.ToBinary(postData)
+                    ]
+                  )
+                ),
                 psToken = Record.ToList(result1){1} & " " & Record.ToList(result1){0},
                 tokens = {psToken}
               in
@@ -105,41 +107,39 @@
           </section>          
           <section data-fullscreen>
 						<pre><code data-line-numbers data-trim style="min-height: 800px;">
-            let
-              queryID = psQueryName,
-              queryHeaders  = [
+              let
+                queryID = psQueryName,
+                queryHeaders  = [
                   #"Authorization" = psTokens{0},
                   #"Content-Type" = "application/json",
                   #"Accept" = "application/json"
-              ],
-              postData = Text.ToBinary(""),
-              //* Generic Code Starts *//
-              gatherData = (pageNumber as number, _pageSize as number) => let
+                ],
+                postData = Text.ToBinary(""),
+                //* Generic Code Starts *//
+                gatherData = (pageNumber as number, _pageSize as number) => let
                   queryOptions = [
-                      RelativePath = "/ws/schema/query/" & queryID & "",  
-                      Query = [page = Text.From(pageNumber), pagesize = Text.From(_pageSize)],
-                      Headers = queryHeaders,
-                      Content = postData
+                    RelativePath = "/ws/schema/query/" & queryID & "",  
+                    Query = [page = Text.From(pageNumber), pagesize = Text.From(_pageSize)],
+                    Headers = queryHeaders,
+                    Content = postData
                   ],
-                  newdata = Record.ToList( Json.Document( Web.Contents( psURL, queryOptions ) ) ){1}
-              in newdata,
-              queryOptions = [
-                  RelativePath = "/ws/schema/query/" & queryID & "",  
-                  Query = [count = "true"],
+                  newdata = Record.ToList( Json.Document( Web.Contents( psURL, queryOptions ) ) )
+                in newdata,
+                queryOptions = [
+                  RelativePath = "/ws/schema/query/" & queryID & "/count",
                   Headers = queryHeaders,
                   Content = postData
-              ],
-              queryResult = Json.Document(Web.Contents(psURL,queryOptions)),
-              jsonResponse = Record.ToList(queryResult),
-              initData = jsonResponse{1},
-              count = jsonResponse{0},
-              pages = List.Numbers(1,(count/pageSize)),
-              pageTable = Table.FromList(pages, Splitter.SplitByNothing(), {"PageNumber"}, null, ExtraValues.Error),
-              pageNumberChangeType = Table.TransformColumnTypes(pageTable,{{"PageNumber", Int64.Type}}),
-              #"AddedPageData" = Table.ExpandListColumn(Table.AddColumn(pageNumberChangeType, "data", each if [PageNumber]=1 then initData else gatherData([PageNumber], pageSize)), "data"),
-              #"RemovedPageNumber" = Table.RemoveColumns(#"AddedPageData",{"PageNumber"})
-          in
-              RemovedPageNumber
+                ],
+                pageLength = Record.ToList(Json.Document(Web.Contents(psURL,queryOptions))){0},
+                pages = List.Numbers(1, Number.RoundDown(pageLength/pageSize))//(pageLength/pageSize)),
+                pageTable = Table.FromList(pages, Splitter.SplitByNothing(), {"PageNumber"}, null, ExtraValues.Error),
+                pageNumberChangeType = Table.TransformColumnTypes(pageTable,{{"PageNumber", Int64.Type}}),
+                #"AddedPageData" = Table.ExpandListColumn(Table.AddColumn(pageNumberChangeType, "data", each gatherData([PageNumber], pageSize){0}), "data"),
+                #"RemovedPageNumber" = Table.RemoveColumns(#"AddedPageData",{"PageNumber"}),
+                //* Generic Code Ends *//
+                data = #"RemovedPageNumber"
+              in
+                #"data"
             </code></pre>
           </section>
           <section data-markdown data-fullscreen>
@@ -151,7 +151,11 @@
               ---
               ![](./images/pbi23.png)
               ---
-              [download sample file](./com.fairgreen.ps.sbabsent.students.pbix)
+              [download 'PowerSchool(PowerQuery) To PowerBI' file](./powerschool.powerquery.pbix)
+
+              [download 'PS Enrollments(API Data) To PowerBI' file](./psenrollments.api.pbix)
+
+              [download 'IRIS-PSF(API Data) To PowerBI' file](./iris.psf.api.pbix)
             </textarea>
           </section>
         </section>       
