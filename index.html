@@ -107,39 +107,38 @@
           </section>          
           <section data-fullscreen>
 						<pre><code data-line-numbers data-trim style="min-height: 800px;">
-              let
-                queryID = psQueryName,
-                queryHeaders  = [
-                  #"Authorization" = psTokens{0},
-                  #"Content-Type" = "application/json",
-                  #"Accept" = "application/json"
-                ],
-                postData = Text.ToBinary(""),
-                //* Generic Code Starts *//
-                gatherData = (pageNumber as number, _pageSize as number) => let
-                  queryOptions = [
-                    RelativePath = "/ws/schema/query/" & queryID & "",  
-                    Query = [page = Text.From(pageNumber), pagesize = Text.From(_pageSize)],
-                    Headers = queryHeaders,
-                    Content = postData
-                  ],
-                  newdata = Record.ToList( Json.Document( Web.Contents( psURL, queryOptions ) ) )
-                in newdata,
+            let
+              queryID = psQueryName1,
+              queryHeaders  = [
+                #"Authorization" = psTokens{0},
+                #"Content-Type" = "application/json",
+                #"Accept" = "application/json"
+              ],
+              postData = Text.ToBinary(""),
+              //* Generic Code Starts *//
+              gatherData = (pageNumber as number, _pageSize as number) => let
                 queryOptions = [
-                  RelativePath = "/ws/schema/query/" & queryID & "/count",
+                  RelativePath = "/ws/schema/query/" & queryID & "",  
+                  Query = [page = Text.From(pageNumber), pagesize = Text.From(_pageSize)],
                   Headers = queryHeaders,
                   Content = postData
                 ],
-                pageLength = Record.ToList(Json.Document(Web.Contents(psURL,queryOptions))){0},
-                pages = List.Numbers(1, Number.RoundDown(pageLength/pageSize))//(pageLength/pageSize)),
-                pageTable = Table.FromList(pages, Splitter.SplitByNothing(), {"PageNumber"}, null, ExtraValues.Error),
-                pageNumberChangeType = Table.TransformColumnTypes(pageTable,{{"PageNumber", Int64.Type}}),
-                #"AddedPageData" = Table.ExpandListColumn(Table.AddColumn(pageNumberChangeType, "data", each gatherData([PageNumber], pageSize){0}), "data"),
-                #"RemovedPageNumber" = Table.RemoveColumns(#"AddedPageData",{"PageNumber"}),
-                //* Generic Code Ends *//
-                data = #"RemovedPageNumber"
-              in
-                #"data"
+                newdata = Record.ToList( Json.Document( Web.Contents( psURL, queryOptions ) ) )
+              in newdata,
+              queryOptions = [
+                RelativePath = "/ws/schema/query/" & queryID & "/count",
+                Headers = queryHeaders,
+                Content = postData
+              ],
+              pageLength = Record.ToList(Json.Document(Web.Contents(psURL,queryOptions))){0},
+              pages = List.Numbers(1, Number.RoundDown(pageLength/pageSize)),
+              pageTable = Table.FromList(pages, Splitter.SplitByNothing(), {"PageNumber"}, null, ExtraValues.Error),
+              AddedPageData = Table.ExpandListColumn(Table.AddColumn(pageTable, "data", each gatherData([PageNumber], pageSize){0}), "data"),
+              Data = Table.FromRecords(AddedPageData[data]),
+              //* Generic Code Ends *//
+              ResultedData = Data
+            in
+              ResultedData
             </code></pre>
           </section>
           <section data-markdown data-fullscreen>
