@@ -418,3 +418,6 @@ package-lock.json
 gulpfile.js
 package.json
 ~README.md
+iris.psf.api.pbix
+powerschool.powerquery.pbix
+psenrollments.api.pbix
