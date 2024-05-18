@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+
+    <title>PowerSchool Training</title>
+
+    <link rel="stylesheet" href="dist/reset.css" />
+    <link rel="stylesheet" href="dist/reveal.css" />
+    <link rel="stylesheet" href="dist/theme/beige.css" />
+
+    <!-- Theme used for syntax highlighted code -->
+    <link rel="stylesheet" href="plugin/highlight/monokai.css" />
+  </head>
+
+  <body>
+    <div class="reveal">
+      <div class="slides">
+        <!--  -->
+        <section data-markdown>
+          <textarea data-template>
+            ## How to Call 
+            # PowerSchool PowerQuery
+            ## inside PowerBI ?
+          </textarea>
+        </section>
+
+        <section>
+          <section data-fullscreen data-markdown>
+            ## Requirements
+            - PowerSchool URL (eg: https://`&lt;&lt;domain&gt;&gt;`.powerschool.com)
+            - PowerQuery Plugin `ClientID`
+            - PowerQuery Plugin `ClientSecret`
+            - PowerQuery Name (eg: `com.princepy.schoolaut0mater.enrollments.all`)
+          </section>
+        </section>
+
+        <section>
+          <section data-markdown>
+            <textarea data-template>
+              # PowerBI Desktop
+            </textarea>
+          </section>
+          <section data-markdown>
+            <textarea data-template>
+              ### Open Blank Query in PowerBI Desktop
+              ![](./images/pbi1.png)
+              ---
+              ### Create Parameters
+              ![](./images/pbi2.png)
+              ---
+              ### Rename the `Query1` as `psToken` and update the code as below
+              ![](./images/pbi3.png)
+            </textarea>
+          </section>
+          <section data-fullscreen>
+						<pre><code data-line-numbers data-trim style="min-height: 530px;">
+              let
+                url = psURL,
+                postData = "grant_type=client_credentials",
+                authTxt = Text.ToBinary(psClientID & ":" & psClientSecret),
+                base64T = Binary.ToText(authTxt, BinaryEncoding.Base64),
+                result1 = Json.Document(
+                  Web.Contents(
+                    url,
+                    [
+                      RelativePath = "/oauth/access_token",
+                      Headers = [
+                        #"Authorization" = "Basic " & base64T,
+                        #"Content-Type" = "application/x-www-form-urlencoded"
+                      ],
+                      Content = Text.ToBinary(postData)
+                    ]
+                  )
+                ),
+                psToken = Record.ToList(result1){1} & " " & Record.ToList(result1){0},
+                tokens = {psToken}
+              in
+                tokens
+            </code></pre>
+          </section>
+        </section>
+
+        <section>
+          <section data-markdown data-fullscreen>
+            <textarea data-template>
+              # Prepare the PowerBI file
+              ---
+              ### Navigate to File => Options and Settings => Options               
+              ![](./images/pbis1.png)
+              ### Enable 'Always Ignore Privacy Levels option.'
+              ![](./images/pbis2.png)
+            </textarea>
+          </section>
+        </section>
+
+        <section>
+          <section data-markdown data-fullscreen>
+            <textarea data-template>
+              # Building PowerQuery
+              ## Create a blank query as "psQuery" and paste the code below
+            </textarea>
+          </section>          
+          <section data-fullscreen>
+						<pre><code data-line-numbers data-trim style="min-height: 800px;">
+            let
+              queryID = psQueryName1,
+              queryHeaders  = [
+                #"Authorization" = psTokens{0},
+                #"Content-Type" = "application/json",
+                #"Accept" = "application/json"
+              ],
+              postData = Text.ToBinary(""),
+              //* Generic Code Starts *//
+              gatherData = (pageNumber as number, _pageSize as number) => let
+                queryOptions = [
+                  RelativePath = "/ws/schema/query/" & queryID & "",  
+                  Query = [page = Text.From(pageNumber), pagesize = Text.From(_pageSize)],
+                  Headers = queryHeaders,
+                  Content = postData
+                ],
+                newdata = Record.ToList( Json.Document( Web.Contents( psURL, queryOptions ) ) )
+              in newdata,
+              queryOptions = [
+                RelativePath = "/ws/schema/query/" & queryID & "/count",
+                Headers = queryHeaders,
+                Content = postData
+              ],
+              pageLength = Record.ToList(Json.Document(Web.Contents(psURL,queryOptions))){0},
+              pages = List.Numbers(1, Number.RoundDown(pageLength/pageSize)),
+              pageTable = Table.FromList(pages, Splitter.SplitByNothing(), {"PageNumber"}, null, ExtraValues.Error),
+              AddedPageData = Table.ExpandListColumn(Table.AddColumn(pageTable, "data", each gatherData([PageNumber], pageSize){0}), "data"),
+              Data = Table.FromRecords(AddedPageData[data]),
+              //* Generic Code Ends *//
+              ResultedData = Data
+            in
+              ResultedData
+            </code></pre>
+          </section>
+          <section data-markdown data-fullscreen>
+            <textarea data-template>
+              ### Expand the last step of "psQuery"
+              ![](./images/pbi21.png)
+              ---
+              ![](./images/pbi22.png)
+              ---
+              ![](./images/pbi23.png)
+              ---
+              [download 'PowerSchool(PowerQuery) To PowerBI' file](./powerschool.powerquery.pbix)
+
+              [download 'PS Enrollments(API Data) To PowerBI' file](./psenrollments.api.pbix)
+
+              [download 'IRIS-PSF(API Data) To PowerBI' file](./iris.psf.api.pbix)
+            </textarea>
+          </section>
+        </section>       
+      
+        <section data-markdown>
+          <textarea data-template>
+
+            powered by `Prince PARK`
+
+            ![](./images/princepark.png)
+            
+            IT Manager,
+
+            American School of Bahrain
+            
+            prince_ppy@yahoo.com
+          </textarea>
+        </section>
+
+      </div>
+    </div>
+
+    <script src="dist/reveal.js"></script>
+    <script src="plugin/notes/notes.js"></script>
+    <script src="plugin/markdown/markdown.js"></script>
+    <script src="plugin/highlight/highlight.js"></script>
+    <script src="plugin/math/math.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/reveal.js-plugins@latest/fullscreen/plugin.js"></script>
+    <script>
+      Reveal.initialize({
+        hash: true,
+        plugins: [
+          RevealMarkdown,
+          RevealHighlight,
+          RevealNotes,
+          RevealMath.KaTeX,
+          RevealFullscreen,
+        ],
+      });
+    </script>
+  </body>
+</html>
